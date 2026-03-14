@@ -5,6 +5,7 @@ import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { APP_CONFIG, EMAIL_CONFIG } from "./config";
 import { db, initDb } from "./db";
+import { seedFeesIfEmpty } from "./seedFees";
 import { sendEmail } from "./emailSender";
 import {
   planNotificationsFromData,
@@ -377,6 +378,7 @@ app.post("/api/send-test-email", async (_req, res) => {
 });
 
 initDb();
+seedFeesIfEmpty();
 
 // Jednorázové naplánování notifikací z dat (svozy + poplatky)
 planNotificationsFromData();

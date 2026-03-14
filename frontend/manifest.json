@@ -1,13 +1,28 @@
 {
+  "id": "/",
   "name": "Popelnice – připomínky svozu",
   "short_name": "Popelnice",
+  "description": "Přehled termínů svozu odpadu a obecních poplatků s e-mailovými připomínkami.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "theme_color": "#1e40af",
   "background_color": "#f0f4f8",
   "lang": "cs",
+  "categories": ["utilities", "productivity"],
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }
