@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+backend/.env
+
+# Database
+*.db
+backend/*.db
+backend/popelnice.db
+
+# Build output
+backend/dist/
+
+# Frontend generated config (API URL for Vercel)
+frontend/config.js
+
+# System
+.DS_Store
+Thumbs.db
+*.log

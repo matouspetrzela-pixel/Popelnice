@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <title>Popelnice – připomínky svozu a poplatků</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1e40af" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 0;
+        background: #f8fafc;
+        color: #0f172a;
+        line-height: 1.5;
+      }
+
+      header {
+        background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
+        color: #fff;
+        padding: 20px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.12);
+      }
+      header .header-brand { display: flex; align-items: center; gap: 14px; }
+      header .icon { font-size: 1.75rem; }
+      header h1 { margin: 0; font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
+      header p  { margin: 4px 0 0; font-size: 0.8125rem; opacity: .92; }
+      header .btn-header {
+        flex-shrink: 0;
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,.6);
+        background: rgba(255,255,255,.15);
+        color: #fff;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      header .btn-header:hover { background: rgba(255,255,255,.25); }
+      .settings-panel {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 24px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        background: #f1f5f9;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      .settings-panel--hidden { display: none; }
+
+      .container {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 24px 20px 48px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 24px 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.06);
+        border: 1px solid #e2e8f0;
+      }
+
+      .card-heading {
+        margin: 0 0 20px;
+        font-size: 0.8125rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: #475569;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e2e8f0;
+      }
+      .card-heading.card-heading-primary {
+        color: #1e40af;
+        border-bottom-color: #93c5fd;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #334155;
+      }
+      input[type="email"],
+      input[type="text"] {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        font-size: 0.9375rem;
+        margin-bottom: 14px;
+        transition: border-color .15s, box-shadow .15s;
+      }
+      input:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 10px 20px;
+        border-radius: 8px;
+        border: none;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity .15s, background-color .15s;
+      }
+      .btn:disabled { opacity: .55; cursor: default; }
+      .btn-primary { background: #2563eb; color: #fff; }
+      .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
+      .btn-secondary { background: #e2e8f0; color: #334155; margin-left: 8px; }
+      .btn-secondary:hover:not(:disabled) { background: #cbd5e1; }
+
+      .status-msg {
+        margin-top: 8px;
+        font-size: 13px;
+        min-height: 18px;
+      }
+      .ok  { color: #166534; }
+      .err { color: #b91c1c; }
+
+      /* Notifikace / poplatky list */
+      .notif-list, .fee-list { list-style: none; padding: 0; margin: 0; }
+      .notif-item, .fee-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 14px 0;
+        border-bottom: 1px solid #f1f5f9;
+      }
+      .notif-item:last-child, .fee-item:last-child { border-bottom: none; }
+      .notif-badge {
+        flex-shrink: 0;
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+      }
+      .badge-komunal { background: #dbeafe; }
+      .badge-bio     { background: #dcfce7; }
+      .badge-fee     { background: #fef3c7; }
+      .notif-body    { flex: 1; min-width: 0; }
+      .notif-title   { font-weight: 600; font-size: 0.9375rem; color: #0f172a; }
+      .notif-sub     { font-size: 0.8125rem; color: #64748b; margin-top: 4px; }
+      .notif-time    { font-size: 0.8125rem; color: #64748b; margin-top: 6px; }
+
+      .tag {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        letter-spacing: .03em;
+        margin-right: 8px;
+      }
+      .tag-komunal { background: #bfdbfe; color: #1e40af; }
+      .tag-bio     { background: #bbf7d0; color: #166534; }
+      .tag-fee     { background: #fde68a; color: #92400e; }
+
+      .empty-msg { color: #64748b; font-size: 0.9375rem; }
+
+      /* Další příjemci – samostatná karta */
+      .recipients-desc { font-size: 0.875rem; color: #64748b; margin-bottom: 16px; line-height: 1.5; }
+      .recipients-list { list-style: none; padding: 0; margin: 0 0 16px; }
+      .recipients-list li {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 10px 0; border-bottom: 1px solid #f1f5f9;
+      }
+      .recipients-list li:last-child { border-bottom: none; }
+      .recipient-label { font-size: 0.9375rem; }
+      .recipient-remove { padding: 6px 12px; font-size: 0.8125rem; }
+
+      /* Info box */
+      .info-box {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        padding: 14px 16px;
+        font-size: 0.875rem;
+        color: #1e40af;
+        margin-bottom: 20px;
+        line-height: 1.5;
+      }
+
+      /* Kalendář svozů */
+      .calendar-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+      .calendar-month-title { font-size: 1.125rem; font-weight: 700; color: #0f172a; }
+      .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+      .calendar-weekday { font-size: .7rem; font-weight: 700; color: #718096; padding: 4px 0; }
+      .calendar-day {
+        aspect-ratio: 1; max-width: 44px; margin: 0 auto;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .85rem; font-weight: 600; border-radius: 8px;
+        min-height: 36px;
+      }
+      .calendar-day.other-month { color: #cbd5e0; }
+      .calendar-day.komunal { background: #22c55e; color: #fff; }
+      .calendar-day.bio { background: #92400e; color: #fff; }
+      .calendar-day.both { background: linear-gradient(135deg, #22c55e 50%, #92400e 50%); color: #fff; }
+      .calendar-legend { margin-top: 12px; font-size: .8rem; color: #718096; display: flex; gap: 16px; flex-wrap: wrap; }
+      .calendar-legend span { display: inline-flex; align-items: center; gap: 6px; }
+      .calendar-legend .dot-komunal { width: 12px; height: 12px; border-radius: 4px; background: #22c55e; }
+      .calendar-legend .dot-bio { width: 12px; height: 12px; border-radius: 4px; background: #92400e; }
+    </style>
+  </head>
+  <body>
+    <script src="/config.js"></script>
+    <header>
+      <div class="header-brand">
+        <div class="icon">🗑️</div>
+        <div>
+          <h1>Popelnice</h1>
+          <p>Připomínky svozu komunálního &amp; BIO odpadu a obecních poplatků</p>
+        </div>
+      </div>
+      <button type="button" id="settings-toggle" class="btn-header" aria-expanded="false">Nastavení</button>
+    </header>
+
+    <div id="settings-panel" class="settings-panel settings-panel--hidden" aria-hidden="true">
+      <div class="card">
+        <h2 class="card-heading">Další příjemci (sousedé)</h2>
+        <p class="recipients-desc">Připomínky budou odeslány i na tyto e‑mailové adresy. Každý příjemce dostane vlastní e‑mail.</p>
+        <ul class="recipients-list" id="recipients-list"></ul>
+        <form id="recipient-form">
+          <label for="recipient-email">E‑mail *</label>
+          <input type="email" id="recipient-email" required placeholder="soused@email.cz" />
+          <label for="recipient-label">Popis (nepovinné)</label>
+          <input type="text" id="recipient-label" placeholder="např. Soused Novák" maxlength="120" />
+          <div style="margin-top:12px;">
+            <button type="submit" id="recipient-add-btn" class="btn btn-primary">Přidat</button>
+          </div>
+        </form>
+        <div id="recipient-status" class="status-msg"></div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="card">
+        <h2 class="card-heading card-heading-primary">Nadcházející poplatky</h2>
+        <p id="fee-empty" class="empty-msg" style="display:none;">Žádné nadcházející poplatky.</p>
+        <ul class="fee-list" id="fee-list"></ul>
+      </div>
+      <div class="card">
+        <h2 class="card-heading">Kalendář svozů</h2>
+        <div class="calendar-nav">
+          <button type="button" id="calendar-prev" class="btn btn-secondary">← Předchozí</button>
+          <span class="calendar-month-title" id="calendar-title">Březen 2026</span>
+          <button type="button" id="calendar-next" class="btn btn-secondary">Následující →</button>
+        </div>
+        <div class="calendar-grid" id="calendar-head">
+          <span class="calendar-weekday">Po</span><span class="calendar-weekday">Út</span><span class="calendar-weekday">St</span><span class="calendar-weekday">Čt</span><span class="calendar-weekday">Pá</span><span class="calendar-weekday">So</span><span class="calendar-weekday">Ne</span>
+        </div>
+        <div class="calendar-grid" id="calendar-days"></div>
+        <div class="calendar-legend">
+          <span><span class="dot-komunal"></span> Komunální odpad</span>
+          <span><span class="dot-bio"></span> BIO odpad</span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const WASTE_LABELS = { komunal: 'Komunální odpad', bio: 'BIO odpad' };
+      const MONTH_NAMES = ['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
+
+      let wasteEventsByDate = {};
+      let calendarYear = 2026;
+      let calendarMonth = 2;
+
+      async function loadWasteEvents(year) {
+        try {
+          const prefix = year + '-';
+          for (const k of Object.keys(wasteEventsByDate)) {
+            if (k.startsWith(prefix)) delete wasteEventsByDate[k];
+          }
+          const res = await fetch('/api/waste-events?year=' + year);
+          if (!res.ok) return;
+          const data = await res.json();
+          const byDate = {};
+          for (const e of data.events || []) {
+            const d = typeof e.date === 'string' ? e.date.slice(0, 10) : '';
+            const type = (e.type || '').toLowerCase();
+            if (!d || (type !== 'komunal' && type !== 'bio')) continue;
+            if (!byDate[d]) byDate[d] = [];
+            byDate[d].push(type);
+          }
+          for (const d of Object.keys(byDate)) {
+            const t = byDate[d];
+            wasteEventsByDate[d] = t.includes('komunal') && t.includes('bio') ? 'both' : t[0];
+          }
+        } catch(e) { console.error(e); }
+      }
+
+      function renderCalendarMonth(year, month) {
+        const first = new Date(year, month, 1);
+        const last = new Date(year, month + 1, 0);
+        const daysInMonth = last.getDate();
+        const firstWeekday = (first.getDay() + 6) % 7;
+        const container = document.getElementById('calendar-days');
+        container.innerHTML = '';
+        const totalCells = firstWeekday + daysInMonth;
+        const rows = Math.ceil(totalCells / 7);
+        let dayNum = 1 - firstWeekday;
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < 7; c++) {
+            const cell = document.createElement('div');
+            cell.className = 'calendar-day';
+            if (dayNum < 1 || dayNum > daysInMonth) {
+              cell.classList.add('other-month');
+              cell.textContent = dayNum < 1 ? new Date(year, month, dayNum).getDate() : new Date(year, month + 1, dayNum - daysInMonth).getDate();
+            } else {
+              const dateStr = year + '-' + String(month + 1).padStart(2,'0') + '-' + String(dayNum).padStart(2,'0');
+              const type = wasteEventsByDate[dateStr];
+              if (type === 'komunal' || type === 'bio' || type === 'both') {
+                cell.setAttribute('class', 'calendar-day ' + type);
+              }
+              cell.textContent = dayNum;
+              if (type) {
+                const label = type === 'both' ? 'Svoz komunálního i BIO odpadu' : type === 'komunal' ? 'Svoz komunálního odpadu' : 'Svoz BIO odpadu';
+                cell.setAttribute('title', dayNum + '. ' + MONTH_NAMES[month] + ' – ' + label);
+              }
+            }
+            container.appendChild(cell);
+            dayNum++;
+          }
+        }
+        document.getElementById('calendar-title').textContent = MONTH_NAMES[month] + ' ' + year;
+      }
+
+      function calendarPrev() {
+        calendarMonth--;
+        if (calendarMonth < 0) { calendarMonth = 11; calendarYear--; }
+        renderCalendarMonth(calendarYear, calendarMonth);
+      }
+      function calendarNext() {
+        calendarMonth++;
+        if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
+        renderCalendarMonth(calendarYear, calendarMonth);
+      }
+
+      function formatDate(iso) {
+        if (!iso) return '';
+        const [y, m, d] = iso.split('-');
+        return `${+d}. ${+m}. ${y}`;
+      }
+
+      function dayName(iso) {
+        if (!iso) return '';
+        const days = ['neděle','pondělí','úterý','středa','čtvrtek','pátek','sobota'];
+        return days[new Date(iso).getDay()];
+      }
+
+      async function loadRecipients() {
+        const list = document.getElementById('recipients-list');
+        list.innerHTML = '';
+        try {
+          const res = await fetch((window.API_BASE || '') + '/api/recipients');
+          if (!res.ok) return;
+          const data = await res.json();
+          const recipients = data.recipients || [];
+          for (const r of recipients) {
+            const li = document.createElement('li');
+            const span = document.createElement('span');
+            span.className = 'recipient-label';
+            span.textContent = r.label || r.email;
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-secondary recipient-remove';
+            btn.textContent = 'Odebrat';
+            btn.dataset.id = r.id;
+            btn.addEventListener('click', async () => {
+              const id = btn.dataset.id;
+              if (!id) return;
+              try {
+                const delRes = await fetch((window.API_BASE || '') + '/api/recipients/' + encodeURIComponent(id), { method: 'DELETE' });
+                if (delRes.ok) {
+                  li.remove();
+                } else {
+                  const err = await delRes.json();
+                  document.getElementById('recipient-status').textContent = err.message || 'Nepodařilo se odebrat.';
+                  document.getElementById('recipient-status').className = 'status-msg err';
+                }
+              } catch(e) {
+                document.getElementById('recipient-status').textContent = 'Chyba komunikace se serverem.';
+                document.getElementById('recipient-status').className = 'status-msg err';
+              }
+            });
+            li.appendChild(span);
+            li.appendChild(btn);
+            list.appendChild(li);
+          }
+        } catch(e) { console.error(e); }
+      }
+
+      function renderNotifItem(n, itemClass) {
+        const li = document.createElement('li');
+        li.className = itemClass || 'notif-item';
+
+        const isKomunal = n.wasteType === 'komunal';
+        const isBio     = n.wasteType === 'bio';
+        const isFee     = n.type === 'poplatek';
+
+        const badgeClass = isKomunal ? 'badge-komunal' : isBio ? 'badge-bio' : 'badge-fee';
+        const emoji      = isKomunal ? '🗑️' : isBio ? '🍃' : '💶';
+        const tagClass   = isKomunal ? 'tag-komunal' : isBio ? 'tag-bio' : 'tag-fee';
+
+        let title, sub;
+        if (n.type === 'svoz') {
+          title = WASTE_LABELS[n.wasteType] || 'Svoz odpadu';
+          sub   = n.wasteDate
+            ? `Svoz: <strong>${dayName(n.wasteDate)} ${formatDate(n.wasteDate)}</strong>`
+            : '';
+        } else {
+          title = n.feeName || 'Obecní poplatek';
+          sub   = n.feeDateFrom
+            ? `Platba: ${formatDate(n.feeDateFrom)} – ${formatDate(n.feeDateTo)}`
+            : '';
+        }
+
+        li.innerHTML = `
+          <div class="notif-badge ${badgeClass}">${emoji}</div>
+          <div class="notif-body">
+            <div class="notif-title">
+              <span class="tag ${tagClass}">${isKomunal?'KOMUNAL':isBio?'BIO':'POPLATEK'}</span>
+              ${title}
+            </div>
+            <div class="notif-sub">${sub}</div>
+            <div class="notif-time">Upozornění: ${n.sendAtLocal}</div>
+          </div>`;
+        return li;
+      }
+
+      async function loadNotifications() {
+        const feeList  = document.getElementById('fee-list');
+        const feeEmpty = document.getElementById('fee-empty');
+        feeList.innerHTML = '';
+        try {
+          const res  = await fetch((window.API_BASE || '') + '/api/next-notifications');
+          const data = await res.json();
+          const items = data.notifications || [];
+          const fees  = items.filter(n => n.type === 'poplatek');
+
+          if (fees.length) {
+            feeEmpty.style.display = 'none';
+            for (const n of fees) {
+              feeList.appendChild(renderNotifItem(n, 'fee-item'));
+            }
+          } else {
+            feeEmpty.style.display = 'block';
+          }
+        } catch(e) {
+          console.error(e);
+          feeEmpty.textContent = 'Chyba při načítání.';
+          feeEmpty.style.display = 'block';
+        }
+      }
+
+      document.getElementById('recipient-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const emailInput = document.getElementById('recipient-email');
+        const labelInput = document.getElementById('recipient-label');
+        const email = emailInput.value.trim();
+        const label = labelInput.value.trim() || undefined;
+        const statusEl = document.getElementById('recipient-status');
+        const btn = document.getElementById('recipient-add-btn');
+        statusEl.textContent = '';
+        statusEl.className = 'status-msg';
+        btn.disabled = true;
+        try {
+          const res = await fetch((window.API_BASE || '') + '/api/recipients', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, label }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            statusEl.textContent = data.message || 'Chyba při přidání.';
+            statusEl.classList.add('err');
+          } else {
+            statusEl.textContent = '✓ Příjemce přidán.';
+            statusEl.classList.add('ok');
+            emailInput.value = '';
+            labelInput.value = '';
+            const list = document.getElementById('recipients-list');
+            const li = document.createElement('li');
+            const span = document.createElement('span');
+            span.className = 'recipient-label';
+            span.textContent = data.label || data.email;
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-secondary recipient-remove';
+            removeBtn.textContent = 'Odebrat';
+            removeBtn.dataset.id = data.id;
+            removeBtn.addEventListener('click', async () => {
+              try {
+                const delRes = await fetch((window.API_BASE || '') + '/api/recipients/' + encodeURIComponent(data.id), { method: 'DELETE' });
+                if (delRes.ok) li.remove();
+              } catch(ev) { console.error(ev); }
+            });
+            li.appendChild(span);
+            li.appendChild(removeBtn);
+            list.appendChild(li);
+          }
+        } catch(err) {
+          statusEl.textContent = 'Chyba komunikace se serverem.';
+          statusEl.classList.add('err');
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      loadRecipients();
+      loadNotifications();
+
+      document.getElementById('settings-toggle').addEventListener('click', function() {
+        const panel = document.getElementById('settings-panel');
+        const hidden = panel.classList.toggle('settings-panel--hidden');
+        this.setAttribute('aria-expanded', !hidden);
+        panel.setAttribute('aria-hidden', hidden);
+      });
+
+      (async function initCalendar() {
+        const now = new Date();
+        calendarYear = now.getFullYear();
+        calendarMonth = now.getMonth();
+        await loadWasteEvents(calendarYear);
+        await loadWasteEvents(calendarYear + 1);
+        renderCalendarMonth(calendarYear, calendarMonth);
+        document.getElementById('calendar-prev').addEventListener('click', async () => {
+          calendarPrev();
+          await loadWasteEvents(calendarYear);
+          renderCalendarMonth(calendarYear, calendarMonth);
+        });
+        document.getElementById('calendar-next').addEventListener('click', async () => {
+          calendarNext();
+          await loadWasteEvents(calendarYear);
+          renderCalendarMonth(calendarYear, calendarMonth);
+        });
+      })();
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      }
+    </script>
+  </body>
+</html>

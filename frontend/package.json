@@ -1,0 +1,7 @@
+{
+  "name": "popelnice-frontend",
+  "private": true,
+  "scripts": {
+    "build": "node -e \"require('fs').writeFileSync('config.js', 'window.API_BASE=' + JSON.stringify(process.env.API_BASE || '') + ';');\""
+  }
+}

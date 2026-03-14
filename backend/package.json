@@ -1,0 +1,46 @@
+{
+  "name": "popelnice-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend pro aplikaci Popelnice – připomínky svozu odpadu a obecních poplatků.",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "import:waste-2026": "ts-node-dev --transpile-only src/scripts/import-waste-2026.ts",
+    "seed:fees-2026": "ts-node-dev --transpile-only src/scripts/seed-fees-2026.ts",
+    "extract-svoz-pdf": "node scripts/extract-svoz-from-pdf.js"
+  },
+  "keywords": [
+    "popelnice",
+    "odpady",
+    "notifikace",
+    "email",
+    "sendgrid"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@sendgrid/mail": "^8.1.0",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/nodemailer": "^7.0.11",
+    "@types/uuid": "^9.0.8",
+    "better-sqlite3": "^12.6.2",
+    "cors": "^2.8.6",
+    "date-fns": "^3.6.0",
+    "date-fns-tz": "^3.1.0",
+    "dotenv": "^16.4.0",
+    "express": "^4.19.0",
+    "nodemailer": "^8.0.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.0",
+    "pdf-to-img": "^5.0.0",
+    "sharp": "^0.34.5",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.6.0",
+    "uuid": "^9.0.1"
+  }
+}
