@@ -344,6 +344,51 @@ app.get("/api/next-notifications", (_req, res) => {
   res.json({ notifications });
 });
 
+// Aktuální a brzy nadcházející poplatky – čte přímo z fee_periods (bez závislosti na notifications/user)
+app.get("/api/current-fees", (_req, res) => {
+  const { toZonedTime, format: fmtTz } = require("date-fns-tz");
+  const tz = APP_CONFIG.timezone;
+  const todayStr = fmtTz(toZonedTime(new Date(), tz), "yyyy-MM-dd", { timeZone: tz });
+  // Hranice "brzy nadcházející" – 60 dní dopředu
+  const soon = new Date();
+  soon.setDate(soon.getDate() + 60);
+  const soonStr = fmtTz(toZonedTime(soon, tz), "yyyy-MM-dd", { timeZone: tz });
+
+  const rows = db
+    .prepare(
+      `
+      SELECT fp.id, fp.date_from, fp.date_to, fp.deadline_type, fp.note,
+             ft.name, ft.description, ft.rate, ft.unit
+      FROM fee_periods fp
+      JOIN fee_types ft ON fp.fee_type_id = ft.id
+      WHERE fp.date_to >= @todayStr
+        AND fp.date_from <= @soonStr
+      ORDER BY fp.date_from ASC
+    `,
+    )
+    .all({ todayStr, soonStr }) as {
+      id: string; date_from: string; date_to: string;
+      deadline_type: string; note: string | null;
+      name: string; description: string | null;
+      rate: number | null; unit: string | null;
+    }[];
+
+  const fees = rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    description: r.description ?? null,
+    rate: r.rate ?? null,
+    unit: r.unit ?? null,
+    dateFrom: r.date_from,
+    dateTo: r.date_to,
+    deadlineType: r.deadline_type,
+    note: r.note ?? null,
+    active: r.date_from <= todayStr && r.date_to >= todayStr,
+  }));
+
+  res.json({ fees });
+});
+
 // Odeslání testovacího e‑mailu (na hlavní e‑mail a všechny další příjemce)
 app.post("/api/send-test-email", async (_req, res) => {
   const addresses = getRecipientEmails(SINGLETON_USER_ID);

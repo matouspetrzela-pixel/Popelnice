@@ -182,9 +182,12 @@
         letter-spacing: .03em;
         margin-right: 8px;
       }
-      .tag-komunal { background: #bfdbfe; color: #1e40af; }
-      .tag-bio     { background: #bbf7d0; color: #166534; }
-      .tag-fee     { background: #fde68a; color: #92400e; }
+      .tag-komunal  { background: #bfdbfe; color: #1e40af; }
+      .tag-bio      { background: #bbf7d0; color: #166534; }
+      .tag-fee      { background: #fde68a; color: #92400e; }
+      .tag-active   { background: #dcfce7; color: #15803d; }
+      .tag-upcoming { background: #e0f2fe; color: #0369a1; }
+      .fee-note     { font-size: 0.8125rem; color: #64748b; margin-top: 5px; line-height: 1.45; }
 
       .empty-msg { color: #64748b; font-size: 0.9375rem; }
 
@@ -276,8 +279,8 @@
         <ul class="next-pickups-list" id="next-pickups-list"></ul>
       </div>
       <div class="card">
-        <h2 class="card-heading card-heading-primary">Nadcházející poplatky</h2>
-        <p id="fee-empty" class="empty-msg" style="display:none;">Žádné nadcházející poplatky.</p>
+        <h2 class="card-heading card-heading-primary">Poplatky obce</h2>
+        <p id="fee-empty" class="empty-msg" style="display:none;">Žádné aktuální poplatky.</p>
         <ul class="fee-list" id="fee-list"></ul>
       </div>
       <div class="card">
@@ -539,27 +542,45 @@
         return li;
       }
 
-      async function loadNotifications() {
+      function renderFeeItem(fee) {
+        const li = document.createElement('li');
+        li.className = 'fee-item';
+        const statusLabel = fee.active ? 'AKTIVNÍ' : 'BRZY';
+        const statusClass = fee.active ? 'tag-active' : 'tag-upcoming';
+        const period = `${formatDate(fee.dateFrom)} – ${formatDate(fee.dateTo)}`;
+        const noteHtml = fee.note ? `<div class="fee-note">ℹ️ ${fee.note}</div>` : '';
+        li.innerHTML = `
+          <div class="notif-badge badge-fee">💶</div>
+          <div class="notif-body">
+            <div class="notif-title">
+              <span class="tag ${statusClass}">${statusLabel}</span>
+              ${fee.name}
+            </div>
+            <div class="notif-sub">Platba: <strong>${period}</strong></div>
+            ${noteHtml}
+          </div>`;
+        return li;
+      }
+
+      async function loadCurrentFees() {
         const feeList  = document.getElementById('fee-list');
         const feeEmpty = document.getElementById('fee-empty');
         feeList.innerHTML = '';
         try {
-          const res  = await fetch((window.API_BASE || '') + '/api/next-notifications');
+          const res  = await fetch((window.API_BASE || '') + '/api/current-fees');
           const data = await res.json();
-          const items = data.notifications || [];
-          const fees  = items.filter(n => n.type === 'poplatek');
-
+          const fees = data.fees || [];
           if (fees.length) {
             feeEmpty.style.display = 'none';
-            for (const n of fees) {
-              feeList.appendChild(renderNotifItem(n, 'fee-item'));
+            for (const f of fees) {
+              feeList.appendChild(renderFeeItem(f));
             }
           } else {
             feeEmpty.style.display = 'block';
           }
         } catch(e) {
           console.error(e);
-          feeEmpty.textContent = 'Data se nenačetla. Na Vercelu nastavte API_BASE na URL backendu a ověřte, že backend běží.';
+          feeEmpty.textContent = 'Data se nenačetla. Ověřte, že backend běží.';
           feeEmpty.style.display = 'block';
         }
       }
@@ -619,7 +640,7 @@
       });
 
       loadRecipients();
-      loadNotifications();
+      loadCurrentFees();
       loadNextPickups();
 
       document.getElementById('settings-toggle').addEventListener('click', function() {
