@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <title>Popelnice – připomínky svozu a poplatků</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#1e40af" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -11,6 +11,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Popelnice" />
     <meta name="description" content="Přehled termínů svozu odpadu a obecních poplatků s e-mailovými připomínkami." />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <style>
       *, *::before, *::after { box-sizing: border-box; }
 
@@ -20,12 +22,16 @@
         background: #f8fafc;
         color: #0f172a;
         line-height: 1.5;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
       }
 
       header {
         background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
         color: #fff;
         padding: 20px 24px;
+        padding-top: calc(20px + env(safe-area-inset-top, 0px));
+        padding-left: calc(24px + env(safe-area-inset-left, 0px));
+        padding-right: calc(24px + env(safe-area-inset-right, 0px));
         display: flex;
         align-items: center;
         justify-content: space-between;
