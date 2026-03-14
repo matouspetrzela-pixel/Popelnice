@@ -221,6 +221,12 @@
       .calendar-legend span { display: inline-flex; align-items: center; gap: 6px; }
       .calendar-legend .dot-komunal { width: 12px; height: 12px; border-radius: 4px; background: #22c55e; }
       .calendar-legend .dot-bio { width: 12px; height: 12px; border-radius: 4px; background: #92400e; }
+      .next-pickups-list { list-style: none; margin: 0; padding: 0; }
+      .next-pickups-list li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-size: 0.9375rem; }
+      .next-pickups-list li:last-child { border-bottom: none; }
+      .next-pickups-list .dot-komunal, .next-pickups-list .dot-bio { flex-shrink: 0; width: 12px; height: 12px; border-radius: 4px; }
+      .next-pickups-list .dot-komunal { background: #22c55e; }
+      .next-pickups-list .dot-bio { background: #92400e; }
     </style>
   </head>
   <body>
@@ -255,6 +261,11 @@
     </div>
 
     <div class="container">
+      <div class="card">
+        <h2 class="card-heading card-heading-primary">Kdy co sveze?</h2>
+        <p id="next-pickups-empty" class="empty-msg" style="display:none;">Žádné nadcházející svozy.</p>
+        <ul class="next-pickups-list" id="next-pickups-list"></ul>
+      </div>
       <div class="card">
         <h2 class="card-heading card-heading-primary">Nadcházející poplatky</h2>
         <p id="fee-empty" class="empty-msg" style="display:none;">Žádné nadcházející poplatky.</p>
@@ -361,6 +372,76 @@
         if (!iso) return '';
         const [y, m, d] = iso.split('-');
         return `${+d}. ${+m}. ${y}`;
+      }
+
+      function daysFromToday(dateStr) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const d = new Date(dateStr + 'T00:00:00');
+        d.setHours(0, 0, 0, 0);
+        return Math.floor((d - today) / (24 * 60 * 60 * 1000));
+      }
+
+      function formatDaysLabel(days, dateStr) {
+        if (days === 0) return 'dnes';
+        if (days === 1) return 'zítra';
+        return 'za ' + days + ' ' + (days >= 2 && days <= 4 ? 'dny' : 'dní') + ' (' + formatDate(dateStr) + ')';
+      }
+
+      async function loadNextPickups() {
+        const list = document.getElementById('next-pickups-list');
+        const emptyEl = document.getElementById('next-pickups-empty');
+        list.innerHTML = '';
+        emptyEl.style.display = 'none';
+        try {
+          const now = new Date();
+          const currentYear = now.getFullYear();
+          const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+          const base = (window.API_BASE || '') + '/api/waste-events?year=';
+          const [res1, res2] = await Promise.all([
+            fetch(base + currentYear),
+            fetch(base + (currentYear + 1)),
+          ]);
+          const data1 = res1.ok ? await res1.json() : { events: [] };
+          const data2 = res2.ok ? await res2.json() : { events: [] };
+          const events = (data1.events || []).concat(data2.events || [])
+            .filter(e => {
+              const type = (e.type || '').toLowerCase();
+              return type === 'komunal' || type === 'bio';
+            })
+            .map(e => ({ date: (e.date || '').slice(0, 10), type: (e.type || '').toLowerCase() }))
+            .filter(e => e.date >= today)
+            .sort((a, b) => a.date.localeCompare(b.date));
+          const nextKomunal = events.find(e => e.type === 'komunal');
+          const nextBio = events.find(e => e.type === 'bio');
+          const items = [];
+          if (nextKomunal) {
+            const days = daysFromToday(nextKomunal.date);
+            items.push({ type: 'komunal', label: WASTE_LABELS.komunal, text: formatDaysLabel(days, nextKomunal.date) });
+          }
+          if (nextBio) {
+            const days = daysFromToday(nextBio.date);
+            items.push({ type: 'bio', label: WASTE_LABELS.bio, text: formatDaysLabel(days, nextBio.date) });
+          }
+          if (items.length === 0) {
+            emptyEl.style.display = 'block';
+            return;
+          }
+          for (const item of items) {
+            const li = document.createElement('li');
+            const dot = document.createElement('span');
+            dot.className = 'dot-' + item.type;
+            li.appendChild(dot);
+            const span = document.createElement('span');
+            span.textContent = item.label + ' – ' + item.text;
+            li.appendChild(span);
+            list.appendChild(li);
+          }
+        } catch (e) {
+          console.error(e);
+          emptyEl.textContent = 'Chyba při načítání.';
+          emptyEl.style.display = 'block';
+        }
       }
 
       function dayName(iso) {
@@ -530,6 +611,7 @@
 
       loadRecipients();
       loadNotifications();
+      loadNextPickups();
 
       document.getElementById('settings-toggle').addEventListener('click', function() {
         const panel = document.getElementById('settings-panel');
