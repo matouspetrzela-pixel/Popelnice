@@ -1,5 +1,6 @@
 import cors from "cors";
 import express from "express";
+import helmet from "helmet";
 import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
@@ -28,6 +29,24 @@ process.on("unhandledRejection", (err) => {
 });
 
 const app = express();
+
+// Bezpečnostní hlavičky – vyžadované Chrome/Play Protect pro WebAPK instalaci PWA
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:"],
+        connectSrc: ["'self'"],
+        manifestSrc: ["'self'"],
+        workerSrc: ["'self'"],
+      },
+    },
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  })
+);
 
 // CORS pro frontend na Vercelu (env FRONTEND_ORIGIN např. https://popelnice.vercel.app)
 const frontendOrigin = process.env.FRONTEND_ORIGIN;
@@ -431,6 +450,16 @@ planNotificationsFromData();
 // Statický frontend (lokálně; na Railway/Render s Root=backend složka neexistuje)
 const frontendPath = path.join(__dirname, "..", "..", "frontend");
 if (fs.existsSync(frontendPath)) {
+  // Manifest musí mít správný Content-Type a SW potřebuje Service-Worker-Allowed
+  app.get("/manifest.json", (_req, res) => {
+    res.setHeader("Content-Type", "application/manifest+json");
+    res.sendFile(path.join(frontendPath, "manifest.json"));
+  });
+  app.get("/sw.js", (_req, res) => {
+    res.setHeader("Content-Type", "application/javascript");
+    res.setHeader("Service-Worker-Allowed", "/");
+    res.sendFile(path.join(frontendPath, "sw.js"));
+  });
   app.use(express.static(frontendPath));
 }
 

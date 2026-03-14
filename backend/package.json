@@ -32,11 +32,13 @@
     "date-fns-tz": "^3.1.0",
     "dotenv": "^16.4.0",
     "express": "^4.19.0",
+    "helmet": "^8.1.0",
     "nodemailer": "^8.0.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.21",
+    "@types/helmet": "^0.0.48",
     "@types/node": "^20.11.0",
     "pdf-to-img": "^5.0.0",
     "sharp": "^0.34.5",
