@@ -469,7 +469,7 @@
           }
         } catch(e) {
           console.error(e);
-          feeEmpty.textContent = 'Chyba při načítání.';
+          feeEmpty.textContent = 'Data se nenačetla. Na Vercelu nastavte API_BASE na URL backendu a ověřte, že backend běží.';
           feeEmpty.style.display = 'block';
         }
       }
