@@ -19,6 +19,13 @@ import {
   EMAIL_MAX_LENGTH,
 } from "./recipientsValidation";
 
+process.on("uncaughtException", (err) => {
+  console.error("UNCAUGHT EXCEPTION:", err);
+});
+process.on("unhandledRejection", (err) => {
+  console.error("UNHANDLED REJECTION:", err);
+});
+
 const app = express();
 
 // CORS pro frontend na Vercelu (env FRONTEND_ORIGIN např. https://popelnice.vercel.app)
@@ -266,7 +273,7 @@ app.get("/api/waste-events", (req, res) => {
     .all({ prefix }) as { date: string; type: string }[];
 
   if (rows.length === 0 && year === "2026") {
-    const dataPath = path.join(__dirname, "..", "..", "data", "svoz-2026.json");
+    const dataPath = path.join(__dirname, "..", "data", "svoz-2026.json");
     try {
       const json = fs.readFileSync(dataPath, "utf-8");
       const items = JSON.parse(json) as { date: string; type: string }[];
@@ -374,9 +381,11 @@ initDb();
 // Jednorázové naplánování notifikací z dat (svozy + poplatky)
 planNotificationsFromData();
 
-// Statický frontend (pokročileji ho lze nahradit bundlovanou aplikací)
+// Statický frontend (lokálně; na Railway/Render s Root=backend složka neexistuje)
 const frontendPath = path.join(__dirname, "..", "..", "frontend");
-app.use(express.static(frontendPath));
+if (fs.existsSync(frontendPath)) {
+  app.use(express.static(frontendPath));
+}
 
 const server = app.listen(APP_CONFIG.port, () => {
   console.log(`Popelnice backend běží na portu ${APP_CONFIG.port}`);
