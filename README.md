@@ -83,18 +83,33 @@ Projekt je připraven na GitHub a nasazení frontendu na Vercel, aby šla aplika
    (doplníš až bude backend nasazený).
 5. Deploy – Vercel nasadí a dá ti URL (např. `https://popelnice.vercel.app`).
 
-### Backend (Railway / Render / Fly.io)
+### Render – celá aplikace na jedné URL (doporučeno)
 
-Frontend na Vercelu potřebuje běžící backend jinde:
+Backend i frontend běží spolu, jedna adresa, žádné API_BASE ani CORS.
+
+1. Jdi na [render.com](https://render.com) → **New** → **Web Service**.
+2. Připoj repozitář **Popelnice** z GitHubu.
+3. Render načte [render.yaml](render.yaml) – **Root Directory** nech prázdné (celý repo), **Build Command** a **Start Command** jsou už v yaml.
+4. V **Environment** přidej proměnné (stejné jako v `backend/.env`):
+   - **GMAIL_USER** – tvůj Gmail
+   - **GMAIL_APP_PASSWORD** – App heslo z Google účtu
+   - **APP_TIMEZONE** – `Europe/Prague`
+   - **TEST_RECIPIENT_EMAIL** – e‑mail pro testy
+5. **Create Web Service**. Render přidělí URL (např. `https://popelnice.onrender.com`).
+6. Aplikace běží na této URL – frontend i API. Na mobilu otevři tuto URL a použij „Přidat na plochu“.
+
+### Backend samostatně (Railway / Render s Root = backend)
+
+Frontend na Vercelu a backend jinde – potřebuješ **API_BASE** na Vercelu a **FRONTEND_ORIGIN** na backendu.
 
 1. Zvol službu (např. [Railway](https://railway.app) nebo [Render](https://render.com)).
-2. Nový projekt z GitHubu, **Root** = `backend` (nebo cestu k backendu).
+2. Nový projekt z GitHubu, **Root** = `backend`.
 3. **Build:** `npm install && npm run build`  
    **Start:** `npm start` (nebo `node dist/index.js`).
 4. Nastav **env** podle `backend/.env.example`:  
    `PORT`, `APP_TIMEZONE`, `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `TEST_RECIPIENT_EMAIL`.  
-   Pro CORS přidej: **`FRONTEND_ORIGIN`** = URL frontendu na Vercelu (např. `https://popelnice.vercel.app`).
-5. Po nasazení zkopíruj URL backendu a v projektu na Vercelu doplň env **`API_BASE`** touto URL a případně znovu deployni frontend.
+   Pro CORS: **`FRONTEND_ORIGIN`** = URL frontendu na Vercelu.
+5. Po nasazení zkopíruj URL backendu a na Vercelu doplň **`API_BASE`** a redeployni frontend.
 
 ### Uložení aplikace do mobilu (PWA)
 
