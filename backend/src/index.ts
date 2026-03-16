@@ -1,10 +1,11 @@
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
-import { APP_CONFIG, EMAIL_CONFIG } from "./config";
+import { ADMIN_CONFIG, APP_CONFIG, EMAIL_CONFIG } from "./config";
 import { db, initDb } from "./db";
 import { seedFeesIfEmpty } from "./seedFees";
 import { sendEmail } from "./emailSender";
@@ -30,6 +31,12 @@ process.on("unhandledRejection", (err) => {
 
 const app = express();
 
+if (!ADMIN_CONFIG.token) {
+  console.warn(
+    "ADMIN_TOKEN není nastaven – mutační API endpointy nejsou chráněny přístupovým tokenem. Nastav ADMIN_TOKEN v prostředí pro produkci.",
+  );
+}
+
 // Bezpečnostní hlavičky – vyžadované Chrome/Play Protect pro WebAPK instalaci PWA
 app.use(
   helmet({
@@ -45,8 +52,33 @@ app.use(
       },
     },
     referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+    frameguard: { action: "deny" },
   })
 );
+
+// Jednoduché rate limiting – ochrana proti zneužití e-mailových endpointů a změn nastavení
+const sensitiveLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Middleware pro ověření administrátorského tokenu na mutačních routách
+function requireAdminToken(
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction,
+) {
+  if (!ADMIN_CONFIG.token) {
+    return next();
+  }
+  const headerToken = (req.headers["x-admin-token"] as string | undefined)?.trim();
+  if (!headerToken || headerToken !== ADMIN_CONFIG.token) {
+    return res.status(401).json({ message: "Neautorizovaný přístup. Chybí nebo nesedí X-Admin-Token." });
+  }
+  return next();
+}
 
 // CORS pro frontend na Vercelu (env FRONTEND_ORIGIN např. https://popelnice.vercel.app)
 const frontendOrigin = process.env.FRONTEND_ORIGIN;
@@ -108,7 +140,7 @@ interface UpsertUserBody {
 }
 
 // Založení nebo úprava uživatele/domácnosti
-app.post("/api/user", (req, res) => {
+app.post("/api/user", requireAdminToken, sensitiveLimiter, (req, res) => {
   const body = req.body as UpsertUserBody;
 
   if (!body.email || typeof body.email !== "string") {
@@ -205,7 +237,7 @@ interface PostRecipientBody {
 }
 
 // POST /api/recipients – přidat dalšího příjemce
-app.post("/api/recipients", (req, res) => {
+app.post("/api/recipients", requireAdminToken, sensitiveLimiter, (req, res) => {
   const body = req.body as PostRecipientBody;
 
   const rawEmail = body.email;
@@ -260,7 +292,7 @@ app.post("/api/recipients", (req, res) => {
 });
 
 // DELETE /api/recipients/:id – odebrat příjemce
-app.delete("/api/recipients/:id", (req, res) => {
+app.delete("/api/recipients/:id", requireAdminToken, sensitiveLimiter, (req, res) => {
   const id = req.params.id;
   if (!isValidUuidV4(id)) {
     return res.status(400).json({ message: "Neplatné ID." });
@@ -409,7 +441,7 @@ app.get("/api/current-fees", (_req, res) => {
 });
 
 // Odeslání testovacího e‑mailu (na hlavní e‑mail a všechny další příjemce)
-app.post("/api/send-test-email", async (_req, res) => {
+app.post("/api/send-test-email", requireAdminToken, sensitiveLimiter, async (_req, res) => {
   const addresses = getRecipientEmails(SINGLETON_USER_ID);
 
   if (addresses.length === 0) {
