@@ -143,7 +143,7 @@ Základ URL: podle nasazení (např. `https://popelnice.onrender.com` nebo loká
 
 | Metoda | Endpoint | Popis |
 |--------|----------|--------|
-| GET | `/api/current-fees` | **Aktuální a brzy nadcházející poplatky** – čte přímo z `fee_periods` + `fee_types`. Podmínka: `date_to >= dnes` a `date_from <= dnes + 60 dní`. Odpověď: `{ fees: [{ id, name, description, rate, unit, dateFrom, dateTo, deadlineType, note, active }] }`. |
+| GET | `/api/current-fees` | **Probíhající poplatky** – čte přímo z `fee_periods` + `fee_types`. Podmínka: `date_from <= dnes` a `date_to >= dnes` (jen aktuální období). Odpověď: `{ fees: [{ id, name, description, rate, unit, dateFrom, dateTo, deadlineType, note, active }] }` (`active` je vždy `true`). |
 | GET | `/api/next-notifications` | Naplánované notifikace (svoz + poplatek) z tabulky `notifications` – pro budoucí rozšíření UI. |
 
 ### 4.6 E-mail
@@ -177,7 +177,7 @@ Příjemci e-mailů: hlavní e-mail uživatele + všichni z `notification_recipi
 
 - **Jednostránková aplikace:** `frontend/index.html` obsahuje vše – styly, markup karet (Kdy co sveze?, Poplatky obce, Kalendář svozů, Nastavení panel s Další příjemci).
 - **Konfigurace API:** `window.API_BASE` se nastavuje z `config.js`. Na Vercelu se generuje při buildi z env proměnné `API_BASE`. Na Renderu je `API_BASE` prázdný (stejný origin).
-- **Poplatky:** Volá `GET /api/current-fees`, zobrazuje seznam s badge „AKTIVNÍ“ / „BRZY“, platební období a poznámku.
+- **Poplatky:** Volá `GET /api/current-fees`, zobrazuje seznam probíhajících období s badge „AKTIVNÍ“, platební období a poznámku.
 - **Svozy:** Volá `GET /api/waste-events?year=...`, zobrazuje nejbližší svozy a kalendář měsíce.
 - **PWA:** `manifest.json` (id, name, short_name, icons s purpose any maskable, display standalone, theme_color, …). `sw.js` – cache-first pro statiku, network-only pro `/api/*`, offline fallback na index.html.
 
@@ -278,6 +278,28 @@ Příjemci e-mailů: hlavní e-mail uživatele + všichni z `notification_recipi
 - **Play Protect / Edge**
   - Instalaci PWA doporučuj primárně přes Chrome.  
   - Varování Edge typu „Nebezpečná aplikace byla zablokována“ je typicky reputační – ověř, že:  
-    - používáš stabilní HTTPS URL,  
-    - manifest a ikony odpovídají značce,  
-    - aplikace nepožaduje přístup k citlivým oprávněním (kamera, mikrofon, geolokace, atd.).
+  - používáš stabilní HTTPS URL,  
+  - manifest a ikony odpovídají značce,  
+  - aplikace nepožaduje přístup k citlivým oprávněním (kamera, mikrofon, geolokace, atd.).
+
+---
+
+## 12. Lessons learned (Render build & bezpečnost)
+
+- **Validní `package.json` je kritický pro deploy**  
+  - I malá syntaktická chyba (např. chybějící uvozovka nebo složená závorka u `devDependencies`) způsobí pád Render buildu už při `npm install` s hláškou `npm ERR! JSON.parse`.  
+  - Před pushem je dobré spustit `npm run build` lokálně nebo alespoň otevřít `package.json` v editoru s JSON validací.
+
+- **Security změny vždy ovlivní deploy**  
+  - Přidání balíčků jako `helmet` nebo `express-rate-limit` musí být správně zapsané v `dependencies`.  
+  - Po větších security úpravách (hlavičky, middleware) je vhodné udělat krátký smoke‑test lokálně (`npm run dev`, zkusit základní API endpointy) ještě před pushem.
+
+- **Render logy jsou klíčové při ladění**  
+  - Při chybě v e‑mailu od Renderu vždy kliknout na „Zobrazit záznamy“ a hledat první `npm ERR` / `node ERR`.  
+  - Typickým vzorem je:  
+    - `npm error JSON.parse Unexpected token ... in JSON at position ...` → problém v `package.json`.  
+    - Nebo chyby při run scriptu (`npm run build`, `npm start`) – ty se řeší podle stack trace.
+
+- **Bezpečnostní hlavičky a reputace PWA**  
+  - Přísnější hlavičky přes `helmet` + CSP na Vercelu pomáhají tomu, aby Chrome / Play Protect viděl PWA jako „bezpečnou“ (žádná nečekaná povolení, žádný přístup k systému).  
+  - Přesto může Edge ukazovat varování na základě reputace domény – to je potřeba brát jako reputační filtr, ne jako chybu v kódu.

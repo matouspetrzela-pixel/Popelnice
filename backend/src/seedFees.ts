@@ -71,6 +71,15 @@ const FEE_PERIODS = [
     note: "Vodné a stočné za I. pololetí 2026, stav vodoměru do 19. 6. 2026.",
   },
   {
+    id: "period-vodne-stocne-vodomer-2026-12",
+    fee_type_id: "fee-vodne-stocne",
+    date_from: "2026-12-11",
+    date_to: "2026-12-18",
+    deadline_type: "nahlaseni_stavu",
+    note:
+      "NEZAPOMENTE!<br/>Pro výpočet výše vodného a stočného v roce 2026 je nutné<br/>nahlásit stav vodoměru nejpozději do 18. 12. 2026.",
+  },
+  {
     id: "period-pausalni-stocne-2026",
     fee_type_id: "fee-pausalni-stocne",
     date_from: "2026-02-02",

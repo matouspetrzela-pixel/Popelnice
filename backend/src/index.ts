@@ -395,15 +395,11 @@ app.get("/api/next-notifications", (_req, res) => {
   res.json({ notifications });
 });
 
-// Aktuální a brzy nadcházející poplatky – čte přímo z fee_periods (bez závislosti na notifications/user)
+// Aktuálně probíhající poplatky – jen období, ve kterém je dnešní den (date_from … date_to včetně)
 app.get("/api/current-fees", (_req, res) => {
   const { toZonedTime, format: fmtTz } = require("date-fns-tz");
   const tz = APP_CONFIG.timezone;
   const todayStr = fmtTz(toZonedTime(new Date(), tz), "yyyy-MM-dd", { timeZone: tz });
-  // Hranice "brzy nadcházející" – 60 dní dopředu
-  const soon = new Date();
-  soon.setDate(soon.getDate() + 60);
-  const soonStr = fmtTz(toZonedTime(soon, tz), "yyyy-MM-dd", { timeZone: tz });
 
   const rows = db
     .prepare(
@@ -412,12 +408,12 @@ app.get("/api/current-fees", (_req, res) => {
              ft.name, ft.description, ft.rate, ft.unit
       FROM fee_periods fp
       JOIN fee_types ft ON fp.fee_type_id = ft.id
-      WHERE fp.date_to >= @todayStr
-        AND fp.date_from <= @soonStr
+      WHERE fp.date_from <= @todayStr
+        AND fp.date_to >= @todayStr
       ORDER BY fp.date_from ASC
     `,
     )
-    .all({ todayStr, soonStr }) as {
+    .all({ todayStr }) as {
       id: string; date_from: string; date_to: string;
       deadline_type: string; note: string | null;
       name: string; description: string | null;
