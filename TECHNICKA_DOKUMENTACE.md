@@ -167,6 +167,23 @@ Základ URL: podle nasazení (např. `https://popelnice.onrender.com` nebo loká
 
 Soubor: `backend/src/scheduler.ts`.
 
+### 5.1 Požadavek projektu – povolené připomínky e-mailem
+
+Záměr je mít **pouze tyto tři předměty** automatických připomínek (žádné jiné hlášky z plánovače neodcházejí):
+
+1. `Připomínka: zítra svoz odpadu`
+2. `Připomínka: zítra začíná období poplatků`
+3. `Připomínka: zítra začíná období hlášení stavu vodoměru`
+
+**Pravidla:**
+
+- V **žádném případě** nesmí odejít **jiné** hlášky z automatického plánovače než výše uvedené tři – nastavení a parametry dat (`fee_periods.deadline_type`, plánování svozů) musí být v souladu s těmito položkami.
+- Pokud **současně** nastane situace, kdy by šlo odeslat připomínku k **období hlášení stavu vodoměru** i k **obecnému období poplatků** (stejný den začátku `date_from`), musí odejít **pouze** hláška s předmětem **`Připomínka: zítra začíná období hlášení stavu vodoměru`** – připomínka „období poplatků“ pro ten den se **neodesílá** (vodoměr má přednost).
+
+**Implementace:** konstanty `REMINDER_SUBJECT_WASTE`, `REMINDER_SUBJECT_POPLATKY`, `REMINDER_SUBJECT_VODOMER` a logika `processDueNotifications()` / `planNotificationsFromData()` v `backend/src/scheduler.ts`.
+
+---
+
 - **planNotificationsFromData()** – voláno jednorázově při startu serveru. Pro každý svoz v `waste_pickup_events` a pro každé `fee_periods` s `deadline_type` pouze `platba` nebo `nahlaseni_stavu` vytvoří záznam v `notifications` (den před svozem / den před `date_from`, odeslání v 18:00 v APP_TIMEZONE). Jiné typy poplatkových období se neplánují. Vyžaduje existenci uživatele (singleton) a nastavený `TEST_RECIPIENT_EMAIL` nebo e-mail uživatele.
 - **processDueNotifications(now)** – voláno každou minutu z `index.ts`. V **18:00** (`APP_TIMEZONE`) odesílá výhradně e-maily s jedním z těchto předmětů:
   - `Připomínka: zítra svoz odpadu` – nejvýše **jednou** na příjemce za den, i když je zítra více svozů;
@@ -254,7 +271,7 @@ Příjemci e-mailů: hlavní e-mail uživatele + všichni z `notification_recipi
 
 - Datum: 2026
 - Projekt: Popelnice (backend + frontend PWA)
-- Popis odpovídá stavu po implementaci: auto-seed poplatků, endpoint `/api/current-fees`, helmet na Renderu, PWA manifest a safe-area pro iOS/Android.
+- Popis odpovídá stavu po implementaci: auto-seed poplatků, endpoint `/api/current-fees`, helmet na Renderu, PWA manifest a safe-area pro iOS/Android, plánovač se třemi pevnými předměty e-mailů a prioritou vodoměru (§ 5.1).
 
 ---
 
