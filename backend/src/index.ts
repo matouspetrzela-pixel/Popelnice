@@ -6,6 +6,7 @@ import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { ADMIN_CONFIG, APP_CONFIG, EMAIL_CONFIG } from "./config";
+import { DATA_META } from "./dataMeta";
 import { db, initDb } from "./db";
 import { seedFeesIfEmpty } from "./seedFees";
 import { sendEmail } from "./emailSender";
@@ -93,6 +94,16 @@ app.use(express.json());
 // Základní health-check
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
+});
+
+// Metadata pro UI: obec, rok dat, naposledy aktualizováno, odkazy v patičce
+app.get("/api/meta", (_req, res) => {
+  res.json({
+    municipality: DATA_META.municipality,
+    dataYear: DATA_META.dataYear,
+    lastUpdated: DATA_META.lastUpdated,
+    footerLinks: DATA_META.footerLinks,
+  });
 });
 
 // Diagnostika e-mailové konfigurace
@@ -309,6 +320,22 @@ app.delete("/api/recipients/:id", requireAdminToken, sensitiveLimiter, (req, res
   return res.status(204).send();
 });
 
+function dedupeWasteEventRows(rows: { date: string; type: string }[]): { date: string; type: string }[] {
+  const seen = new Set<string>();
+  const out: { date: string; type: string }[] = [];
+  for (const r of rows) {
+    const d = typeof r.date === "string" ? r.date.slice(0, 10) : "";
+    const t = String(r.type || "").toLowerCase();
+    if (!d || !t) continue;
+    const key = `${d}|${t}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ date: d, type: t });
+  }
+  out.sort((a, b) => (a.date === b.date ? a.type.localeCompare(b.type) : a.date.localeCompare(b.date)));
+  return out;
+}
+
 // Termíny svozů pro kalendář (rok: query year, výchozí aktuální)
 app.get("/api/waste-events", (req, res) => {
   const yearParam = req.query.year;
@@ -320,7 +347,7 @@ app.get("/api/waste-events", (req, res) => {
 
   let rows = db
     .prepare(
-      `SELECT date, type FROM waste_pickup_events WHERE date LIKE @prefix ORDER BY date`,
+      `SELECT DISTINCT date, type FROM waste_pickup_events WHERE date LIKE @prefix ORDER BY date, type`,
     )
     .all({ prefix }) as { date: string; type: string }[];
 
@@ -337,8 +364,10 @@ app.get("/api/waste-events", (req, res) => {
     }
   }
 
+  const events = dedupeWasteEventRows(rows);
+
   res.json({
-    events: rows.map((r) => ({ date: r.date, type: r.type })),
+    events: events.map((r) => ({ date: r.date, type: r.type })),
   });
 });
 
@@ -420,7 +449,14 @@ app.get("/api/current-fees", (_req, res) => {
       rate: number | null; unit: string | null;
     }[];
 
-  const fees = rows.map((r) => ({
+  const seenIds = new Set<string>();
+  const uniqueRows = rows.filter((r) => {
+    if (seenIds.has(r.id)) return false;
+    seenIds.add(r.id);
+    return true;
+  });
+
+  const fees = uniqueRows.map((r) => ({
     id: r.id,
     name: r.name,
     description: r.description ?? null,

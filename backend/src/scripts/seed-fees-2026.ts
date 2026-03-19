@@ -20,7 +20,7 @@ function main() {
       rate: null,
       unit: "Kc/m3",
       description:
-        "Poplatky za vodné a stočné, platí se 2× ročně zpětně za uplynulé pololetí.",
+        "Poplatky za vodné a stočné se platí 2× ročně vždy zpětně za uplynulé pololetí.",
     },
     {
       id: "fee-pausalni-stocne",
@@ -68,7 +68,7 @@ function main() {
       date_from: "2026-02-02",
       date_to: "2026-03-31",
       deadline_type: "platba",
-      note: "Vodné a stočné za II. pololetí 2025, stav vodoměru do 18. 12. 2025.",
+      note: "Stav vodoměru je nutné nahlásit nejpozději do 18. 12. 2025.",
     },
     {
       id: "period-vodne-stocne-2026-1p",
@@ -76,7 +76,7 @@ function main() {
       date_from: "2026-07-27",
       date_to: "2026-08-14",
       deadline_type: "platba",
-      note: "Vodné a stočné za I. pololetí 2026, stav vodoměru do 19. 6. 2026.",
+      note: "Stav vodoměru je nutné nahlásit nejpozději do 19. 6. 2026.",
     },
     {
       id: "period-vodne-stocne-vodomer-2026-12",
@@ -132,6 +132,23 @@ function main() {
   });
 
   tx();
+
+  // Aktualizace textů u již existujících řádků (INSERT OR IGNORE je nezmění)
+  const vodneDesc =
+    "Poplatky za vodné a stočné se platí 2× ročně vždy zpětně za uplynulé pololetí.";
+  const noteVodne2p = "Stav vodoměru je nutné nahlásit nejpozději do 18. 12. 2025.";
+  const noteVodne1p = "Stav vodoměru je nutné nahlásit nejpozději do 19. 6. 2026.";
+  db.prepare(`UPDATE fee_types SET description = @d WHERE id = 'fee-vodne-stocne'`).run({
+    d: vodneDesc,
+  });
+  db.prepare(`UPDATE fee_periods SET note = @n WHERE id = @id`).run({
+    id: "period-vodne-stocne-2025-2p",
+    n: noteVodne2p,
+  });
+  db.prepare(`UPDATE fee_periods SET note = @n WHERE id = @id`).run({
+    id: "period-vodne-stocne-2026-1p",
+    n: noteVodne1p,
+  });
 
   console.log(
     `Inicializováno ${feeTypes.length} typů poplatků a ${feePeriods.length} období poplatků.`,

@@ -117,6 +117,7 @@ Základ URL: podle nasazení (např. `https://popelnice.onrender.com` nebo loká
 |--------|----------|--------|
 | GET | `/health` | Health check, odpověď `{ "status": "ok" }` |
 | GET | `/api/email-check` | Diagnostika: zda je nastaven Gmail user a app password |
+| GET | `/api/meta` | Údaje pro UI: `municipality`, `dataYear`, `lastUpdated` (YYYY-MM-DD), `footerLinks` (pole `{ label, href }`). Hodnotu `lastUpdated` lze přepsat env `DATA_LAST_UPDATED`. |
 
 ### 4.2 Uživatel / domácnost
 
@@ -137,7 +138,7 @@ Základ URL: podle nasazení (např. `https://popelnice.onrender.com` nebo loká
 
 | Metoda | Endpoint | Popis |
 |--------|----------|--------|
-| GET | `/api/waste-events?year=YYYY` | Svozové události pro daný rok. Pokud DB nemá data, fallback na `backend/data/svoz-2026.json`. |
+| GET | `/api/waste-events?year=YYYY` | Svozové události pro daný rok (`DISTINCT date, type`, bez duplicit). Pokud DB nemá data, fallback na `backend/data/svoz-2026.json`. |
 
 ### 4.5 Poplatky
 
@@ -199,6 +200,7 @@ Příjemci e-mailů: hlavní e-mail uživatele + všichni z `notification_recipi
 | `GMAIL_USER` | Povinné pro e-mail | Gmail účet pro odesílání. |
 | `GMAIL_APP_PASSWORD` | Povinné pro e-mail | App heslo z Google účtu (myaccount.google.com/apppasswords). |
 | `TEST_RECIPIENT_EMAIL` | Doporučené | Fallback e-mail pro příjemce, pokud uživatel není založen. |
+| `DATA_LAST_UPDATED` | Nepovinné | Datum `YYYY-MM-DD` zobrazené v aplikaci jako „naposledy aktualizováno“ (`/api/meta`). |
 | `FRONTEND_ORIGIN` | Pouze při split deployi | Povolený CORS origin (např. https://popelnice.vercel.app). |
 
 ### 7.2 Frontend (Vercel)

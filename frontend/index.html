@@ -40,8 +40,16 @@
       }
       header .header-brand { display: flex; align-items: center; gap: 14px; }
       header .icon { font-size: 1.75rem; }
+      header .header-scope {
+        margin: 0 0 2px 0;
+        font-size: 0.8125rem;
+        font-weight: 700;
+        opacity: 0.96;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+      }
       header h1 { margin: 0; font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
-      header p  { margin: 4px 0 0; font-size: 0.8125rem; opacity: .92; }
+      header p.header-sub  { margin: 4px 0 0; font-size: 0.8125rem; opacity: .92; }
       header .btn-header {
         flex-shrink: 0;
         padding: 8px 16px;
@@ -188,6 +196,7 @@
       .tag-active   { background: #dcfce7; color: #15803d; }
       .tag-upcoming { background: #e0f2fe; color: #0369a1; }
       .fee-note     { font-size: 0.8125rem; color: #64748b; margin-top: 5px; line-height: 1.45; }
+      .fee-desc     { font-size: 0.8125rem; color: #64748b; margin-top: 6px; line-height: 1.45; }
 
       .empty-msg { color: #64748b; font-size: 0.9375rem; }
 
@@ -239,6 +248,38 @@
       .next-pickups-list .dot-komunal, .next-pickups-list .dot-bio { flex-shrink: 0; width: 12px; height: 12px; border-radius: 4px; }
       .next-pickups-list .dot-komunal { background: #22c55e; }
       .next-pickups-list .dot-bio { background: #92400e; }
+
+      .site-footer {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 20px 20px calc(28px + env(safe-area-inset-bottom, 0px));
+        text-align: center;
+        font-size: 0.8125rem;
+        color: #64748b;
+        border-top: 1px solid #e2e8f0;
+        background: #f8fafc;
+      }
+      .footer-updated { margin: 0 0 14px; line-height: 1.5; }
+      .footer-nav {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px 18px;
+      }
+      .footer-nav a { color: #2563eb; text-decoration: none; font-weight: 500; }
+      .footer-nav a:hover { text-decoration: underline; }
+      .footer-powered {
+        margin: 18px 0 0;
+        font-size: 0.72rem;
+        color: #94a3b8;
+        letter-spacing: 0.02em;
+      }
+      .footer-powered a {
+        color: #64748b;
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .footer-powered a:hover { color: #2563eb; text-decoration: underline; }
     </style>
   </head>
   <body>
@@ -247,8 +288,9 @@
       <div class="header-brand">
         <div class="icon">🗑️</div>
         <div>
+          <p class="header-scope" id="header-scope">Pro obec: Velký Týnec · 2026</p>
           <h1>Popelnice</h1>
-          <p>Připomínky svozu komunálního &amp; BIO odpadu a obecních poplatků</p>
+          <p class="header-sub">Připomínky svozu komunálního &amp; BIO odpadu a obecních poplatků</p>
         </div>
       </div>
       <button type="button" id="settings-toggle" class="btn-header" aria-expanded="false">Nastavení</button>
@@ -301,7 +343,20 @@
       </div>
     </div>
 
+    <footer class="site-footer">
+      <p class="footer-updated" id="footer-updated"></p>
+      <nav class="footer-nav" id="footer-nav" aria-label="Odkazy"></nav>
+      <p class="footer-powered">
+        <a href="https://jdemevibit.cz" target="_blank" rel="noopener noreferrer">Powered by Jdemevibit.cz</a>
+      </p>
+    </footer>
+
     <script>
+      function apiUrl(path) {
+        const base = typeof window.API_BASE !== 'undefined' && window.API_BASE ? String(window.API_BASE).replace(/\/$/, '') : '';
+        return base + path;
+      }
+
       const WASTE_LABELS = { komunal: 'Komunální odpad', bio: 'BIO odpad' };
       const MONTH_NAMES = ['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
 
@@ -309,13 +364,49 @@
       let calendarYear = 2026;
       let calendarMonth = 2;
 
+      function formatMetaDateIso(iso) {
+        if (!iso || typeof iso !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso || '—';
+        const [y, m, d] = iso.split('-');
+        return `${+d}. ${+m}. ${y}`;
+      }
+
+      async function loadAppMeta() {
+        const scopeEl = document.getElementById('header-scope');
+        const footEl = document.getElementById('footer-updated');
+        const navEl = document.getElementById('footer-nav');
+        try {
+          const res = await fetch(apiUrl('/api/meta'));
+          if (!res.ok) throw new Error('meta');
+          const m = await res.json();
+          const mun = m.municipality || 'Velký Týnec';
+          const yr = m.dataYear != null ? m.dataYear : 2026;
+          scopeEl.textContent = 'Pro obec: ' + mun + ' · ' + yr;
+          footEl.textContent =
+            'Naposledy aktualizováno: ' + formatMetaDateIso(m.lastUpdated) + ' (svozy a poplatky pro rok ' + yr + ').';
+          navEl.innerHTML = '';
+          const links = Array.isArray(m.footerLinks) ? m.footerLinks : [];
+          for (const L of links) {
+            if (!L || !L.href || !L.label) continue;
+            const a = document.createElement('a');
+            a.href = L.href;
+            a.textContent = L.label;
+            a.rel = 'noopener noreferrer';
+            if (/^https?:\/\//i.test(L.href)) a.target = '_blank';
+            navEl.appendChild(a);
+          }
+        } catch (e) {
+          scopeEl.textContent = 'Pro obec: Velký Týnec · 2026';
+          footEl.textContent = 'Údaje o aktualizaci se nepodařilo načíst.';
+        }
+      }
+
       async function loadWasteEvents(year) {
         try {
           const prefix = year + '-';
           for (const k of Object.keys(wasteEventsByDate)) {
             if (k.startsWith(prefix)) delete wasteEventsByDate[k];
           }
-          const res = await fetch('/api/waste-events?year=' + year);
+          const res = await fetch(apiUrl('/api/waste-events?year=' + year));
           if (!res.ok) return;
           const data = await res.json();
           const byDate = {};
@@ -409,19 +500,26 @@
           const now = new Date();
           const currentYear = now.getFullYear();
           const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-          const base = (window.API_BASE || '') + '/api/waste-events?year=';
+          const base = apiUrl('/api/waste-events?year=');
           const [res1, res2] = await Promise.all([
             fetch(base + currentYear),
             fetch(base + (currentYear + 1)),
           ]);
           const data1 = res1.ok ? await res1.json() : { events: [] };
           const data2 = res2.ok ? await res2.json() : { events: [] };
-          const events = (data1.events || []).concat(data2.events || [])
+          const merged = (data1.events || []).concat(data2.events || [])
             .filter(e => {
               const type = (e.type || '').toLowerCase();
               return type === 'komunal' || type === 'bio';
             })
-            .map(e => ({ date: (e.date || '').slice(0, 10), type: (e.type || '').toLowerCase() }))
+            .map(e => ({ date: (e.date || '').slice(0, 10), type: (e.type || '').toLowerCase() }));
+          const dedup = new Map();
+          for (const e of merged) {
+            if (!e.date) continue;
+            const k = e.date + '|' + e.type;
+            if (!dedup.has(k)) dedup.set(k, e);
+          }
+          const events = Array.from(dedup.values())
             .filter(e => e.date >= today)
             .sort((a, b) => a.date.localeCompare(b.date));
           const nextKomunal = events.find(e => e.type === 'komunal');
@@ -466,7 +564,7 @@
         const list = document.getElementById('recipients-list');
         list.innerHTML = '';
         try {
-          const res = await fetch((window.API_BASE || '') + '/api/recipients');
+          const res = await fetch(apiUrl('/api/recipients'));
           if (!res.ok) return;
           const data = await res.json();
           const recipients = data.recipients || [];
@@ -484,7 +582,7 @@
               const id = btn.dataset.id;
               if (!id) return;
               try {
-                const delRes = await fetch((window.API_BASE || '') + '/api/recipients/' + encodeURIComponent(id), { method: 'DELETE' });
+                const delRes = await fetch(apiUrl('/api/recipients/' + encodeURIComponent(id)), { method: 'DELETE' });
                 if (delRes.ok) {
                   li.remove();
                 } else {
@@ -542,12 +640,24 @@
         return li;
       }
 
+      function escapeHtml(s) {
+        if (s == null || s === '') return '';
+        return String(s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
       function renderFeeItem(fee) {
         const li = document.createElement('li');
         li.className = 'fee-item';
         const statusLabel = fee.active ? 'AKTIVNÍ' : 'BRZY';
         const statusClass = fee.active ? 'tag-active' : 'tag-upcoming';
         const period = `${formatDate(fee.dateFrom)} – ${formatDate(fee.dateTo)}`;
+        const descHtml = fee.description
+          ? `<div class="fee-desc">${escapeHtml(fee.description)}</div>`
+          : '';
         const noteHtml = fee.note ? `<div class="fee-note">ℹ️ ${fee.note}</div>` : '';
         li.innerHTML = `
           <div class="notif-badge badge-fee">💶</div>
@@ -556,6 +666,7 @@
               <span class="tag ${statusClass}">${statusLabel}</span>
               ${fee.name}
             </div>
+            ${descHtml}
             <div class="notif-sub">Platba: <strong>${period}</strong></div>
             ${noteHtml}
           </div>`;
@@ -567,12 +678,15 @@
         const feeEmpty = document.getElementById('fee-empty');
         feeList.innerHTML = '';
         try {
-          const res  = await fetch((window.API_BASE || '') + '/api/current-fees');
+          const res  = await fetch(apiUrl('/api/current-fees'));
           const data = await res.json();
           const fees = data.fees || [];
+          const seenFeeIds = new Set();
           if (fees.length) {
             feeEmpty.style.display = 'none';
             for (const f of fees) {
+              if (!f || !f.id || seenFeeIds.has(f.id)) continue;
+              seenFeeIds.add(f.id);
               feeList.appendChild(renderFeeItem(f));
             }
           } else {
@@ -597,7 +711,7 @@
         statusEl.className = 'status-msg';
         btn.disabled = true;
         try {
-          const res = await fetch((window.API_BASE || '') + '/api/recipients', {
+          const res = await fetch(apiUrl('/api/recipients'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, label }),
@@ -623,7 +737,7 @@
             removeBtn.dataset.id = data.id;
             removeBtn.addEventListener('click', async () => {
               try {
-                const delRes = await fetch((window.API_BASE || '') + '/api/recipients/' + encodeURIComponent(data.id), { method: 'DELETE' });
+                const delRes = await fetch(apiUrl('/api/recipients/' + encodeURIComponent(data.id)), { method: 'DELETE' });
                 if (delRes.ok) li.remove();
               } catch(ev) { console.error(ev); }
             });
@@ -639,6 +753,7 @@
         }
       });
 
+      loadAppMeta();
       loadRecipients();
       loadCurrentFees();
       loadNextPickups();

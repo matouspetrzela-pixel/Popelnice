@@ -17,7 +17,7 @@ const FEE_TYPES = [
     rate: null,
     unit: "Kc/m3",
     description:
-      "Poplatky za vodné a stočné, platí se 2× ročně zpětně za uplynulé pololetí.",
+      "Poplatky za vodné a stočné se platí 2× ročně vždy zpětně za uplynulé pololetí.",
   },
   {
     id: "fee-pausalni-stocne",
@@ -60,7 +60,7 @@ const FEE_PERIODS = [
     date_from: "2026-02-02",
     date_to: "2026-03-31",
     deadline_type: "platba",
-    note: "Vodné a stočné za II. pololetí 2025, stav vodoměru do 18. 12. 2025.",
+    note: "Stav vodoměru je nutné nahlásit nejpozději do 18. 12. 2025.",
   },
   {
     id: "period-vodne-stocne-2026-1p",
@@ -68,7 +68,7 @@ const FEE_PERIODS = [
     date_from: "2026-07-27",
     date_to: "2026-08-14",
     deadline_type: "platba",
-    note: "Vodné a stočné za I. pololetí 2026, stav vodoměru do 19. 6. 2026.",
+    note: "Stav vodoměru je nutné nahlásit nejpozději do 19. 6. 2026.",
   },
   {
     id: "period-vodne-stocne-vodomer-2026-12",
