@@ -117,7 +117,7 @@ Základ URL: podle nasazení (např. `https://popelnice.onrender.com` nebo loká
 |--------|----------|--------|
 | GET | `/health` | Health check, odpověď `{ "status": "ok" }` |
 | GET | `/api/email-check` | Diagnostika: zda je nastaven Gmail user a app password |
-| GET | `/api/meta` | Údaje pro UI: `municipality`, `dataYear`, `lastUpdated` (YYYY-MM-DD), `footerLinks` (pole `{ label, href }`). Hodnotu `lastUpdated` lze přepsat env `DATA_LAST_UPDATED`. |
+| GET | `/api/meta` | Údaje pro UI: `municipality`, `dataYear`, `lastUpdated` (YYYY-MM-DD), volitelně `footerLinks` (pole `{ label, href }`, může být prázdné). Hlavička zobrazí text `municipality - dataYear` bez odkazu. Hodnotu `lastUpdated` lze přepsat env `DATA_LAST_UPDATED`. |
 
 ### 4.2 Uživatel / domácnost
 
