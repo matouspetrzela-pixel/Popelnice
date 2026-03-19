@@ -1,4 +1,4 @@
-const CACHE_NAME = 'popelnice-v5';
+const CACHE_NAME = 'popelnice-v6';
 const STATIC_ASSETS = ['/', '/index.html', '/manifest.json', '/config.js', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {

@@ -7,8 +7,7 @@ const FEE_TYPES = [
     name: "Poplatek za svoz komunálního odpadu",
     rate: 1,
     unit: "Kc/litr",
-    description:
-      "Sazba 1 Kč za litr nádoby, účtováno dle objemu a frekvence svozu.",
+    description: "",
   },
   {
     id: "fee-vodne-stocne",

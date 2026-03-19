@@ -11,7 +11,7 @@ function main() {
       name: "Poplatek za svoz komunálního odpadu",
       rate: 1,
       unit: "Kc/litr",
-      description: "Sazba 1 Kč za litr nádoby, účtováno dle objemu a frekvence svozu.",
+      description: "",
     },
     {
       id: "fee-vodne-stocne",
@@ -149,6 +149,9 @@ function main() {
     id: "period-vodne-stocne-2026-1p",
     n: noteVodne1p,
   });
+  db.prepare(
+    `UPDATE fee_types SET description = '' WHERE id = 'fee-komunalni-odpad'`,
+  ).run();
 
   console.log(
     `Inicializováno ${feeTypes.length} typů poplatků a ${feePeriods.length} období poplatků.`,

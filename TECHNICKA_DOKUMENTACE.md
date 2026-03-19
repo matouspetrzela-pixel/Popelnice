@@ -167,8 +167,12 @@ Základ URL: podle nasazení (např. `https://popelnice.onrender.com` nebo loká
 
 Soubor: `backend/src/scheduler.ts`.
 
-- **planNotificationsFromData()** – voláno jednorázově při startu serveru. Pro každý záznam v `waste_pickup_events` a `fee_periods` vytvoří záznam v `notifications` (den před svozem / den před `date_from` poplatku, odeslání v 18:00 v APP_TIMEZONE). Vyžaduje existenci uživatele (singleton) a nastavený `TEST_RECIPIENT_EMAIL` nebo e-mail uživatele.
-- **processDueNotifications(now)** – voláno každou minutu z `index.ts`. Zpracuje notifikace se `send_at <= now`, odešle e-mail přes `emailSender`, nastaví `status = 'odeslano'` nebo `'selhalo'`. Odesílání je omezeno na časové okno 18:00–18:59 v APP_TIMEZONE, aby se předešlo opakovanému odeslání.
+- **planNotificationsFromData()** – voláno jednorázově při startu serveru. Pro každý svoz v `waste_pickup_events` a pro každé `fee_periods` s `deadline_type` pouze `platba` nebo `nahlaseni_stavu` vytvoří záznam v `notifications` (den před svozem / den před `date_from`, odeslání v 18:00 v APP_TIMEZONE). Jiné typy poplatkových období se neplánují. Vyžaduje existenci uživatele (singleton) a nastavený `TEST_RECIPIENT_EMAIL` nebo e-mail uživatele.
+- **processDueNotifications(now)** – voláno každou minutu z `index.ts`. V **18:00** (`APP_TIMEZONE`) odesílá výhradně e-maily s jedním z těchto předmětů:
+  - `Připomínka: zítra svoz odpadu` – nejvýše **jednou** na příjemce za den, i když je zítra více svozů;
+  - `Připomínka: zítra začíná období poplatků` – pro období s `deadline_type = platba`;
+  - `Připomínka: zítra začíná období hlášení stavu vodoměru` – pro období s `deadline_type = nahlaseni_stavu`.
+  Pokud stejný den (`date_from`) začíná vodoměr i platba, odejde **jen** připomínka vodoměru, ne obě. Stav řádků v `notifications` se nastaví na `odeslano` / `selhalo`.
 
 Příjemci e-mailů: hlavní e-mail uživatele + všichni z `notification_recipients` (bez duplicit).
 
@@ -176,7 +180,7 @@ Příjemci e-mailů: hlavní e-mail uživatele + všichni z `notification_recipi
 
 ## 6. Frontend (PWA)
 
-- **Jednostránková aplikace:** `frontend/index.html` obsahuje vše – styly, markup karet (Kdy co sveze?, Poplatky obce, Kalendář svozů, Nastavení panel s Další příjemci).
+- **Jednostránková aplikace:** `frontend/index.html` obsahuje vše – styly, markup karet (Kdy co sveze?, Poplatky obce, Kalendář svozů). Správa dalších e-mailových příjemců není v UI; endpointy `/api/recipients` zůstávají pro správce (API / nástroje).
 - **Konfigurace API:** `window.API_BASE` se nastavuje z `config.js`. Na Vercelu se generuje při buildi z env proměnné `API_BASE`. Na Renderu je `API_BASE` prázdný (stejný origin).
 - **Poplatky:** Volá `GET /api/current-fees`, zobrazuje seznam probíhajících období s badge „AKTIVNÍ“, platební období a poznámku.
 - **Svozy:** Volá `GET /api/waste-events?year=...`, zobrazuje nejbližší svozy a kalendář měsíce.
